@@ -1,0 +1,56 @@
+---
+- hosts: all
+  vars:
+    # misc_package_list:
+    #   - libselinux-python
+    singularity_dependencies_package_list:
+      - "@development tools"
+      - cryptsetup
+      # - libseccomp-devel
+      - libuuid-devel
+      - openssl-devel
+      - squashfs-tools
+      - wget
+  tasks:
+    - become: yes
+      block:
+        # - package:
+        #     name: "{{ misc_package_list }}"
+        - package:
+            name: "{{ singularity_dependencies_package_list }}"
+        - package:
+            name: epel-release
+        - package:
+            name: singularity
+        - command:
+            argv:
+              - singularity
+              - config
+              - fakeroot
+              - --add
+              - vagrant
+    - block:
+        - become: yes
+          command:
+            chdir: /vagrant
+            creates: /vagrant/lolcow.sif
+            argv:
+              - singularity
+              - build
+              # - --fakeroot
+              - lolcow.sif
+              - lolcow.def
+        - command:
+            chdir: /vagrant
+            argv:
+              - singularity
+              - exec
+              - lolcow.sif
+              - cowsay
+              - "Fresh from the library!"
+          register: example
+        - debug:
+            var: example
+        - copy:
+            dest: /vagrant/example.json
+            content: "{{ example }}"
